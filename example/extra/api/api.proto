@@ -1,0 +1,120 @@
+syntax = "proto3";
+
+package api;
+
+import "google/protobuf/descriptor.proto";
+import "google/protobuf/field_mask.proto";
+
+option go_package = "code.izhaohu.com/dolphin/pb/extra/api";
+
+extend google.protobuf.ServiceOptions {
+    ServiceDescriptor svc = 20190912;
+}
+
+extend google.protobuf.MethodOptions {
+    // An annotation that describes a resource definition.
+    //
+    // Example:
+    //
+    //    message Topic {
+    //      rpc MethodXXX(XXXReq) returns (XXXResp) {
+    //        option (api.resource) = {
+    //          scope: PRIVATE
+    //          ref: "admin.CustomerService/Get"
+    //          ref: "know.AtomicSvcService/DeleteCategory"
+    //        };
+    //      };
+    //    }
+    ResourceDescriptor resource = 20190729;
+}
+
+extend google.protobuf.FieldOptions {
+    FieldDescriptor field = 20190730;
+}
+
+message ServiceDescriptor {
+    // string addr = 1;
+}
+
+// A simple descriptor of a resource type.
+//
+// ResourceDescriptor annotates a resource method (either by means of a
+// protobuf annotation or use in the service config), and associates the
+// resource's references, the resource rbac(TODO).
+// An annotation that describes a resource definition.
+//
+// Example:
+//
+//    message Topic {
+//      rpc MethodXXX(XXXReq) returns (XXXResp) {
+//        option (api.resource) = {
+//          ref: "admin.CustomerService/Get"
+//          ref: "know.AtomicSvcService/DeleteCategory"
+//        };
+//      };
+//    }
+message ResourceDescriptor {
+    enum Scope {
+        // 默认规则, 公开
+        PUBLIC = 0;
+        // PRIVATE 内部接口，请求需提供含 issuer 的 token，无法 auth skip
+        PRIVATE = 1;
+    }
+
+    enum Auth {
+        // 默认规则，需要 token
+        FULL = 0;
+        // 无需鉴权
+        // Scope 为 PRIVATE时，该选项无效
+        SKIP = 1;
+    }
+
+    message Validator {
+        oneof checker {
+            bool   skip = 1;
+            string rule = 2;
+        }
+    }
+
+    message In {
+        google.protobuf.FieldMask field_mask = 1;
+        Validator                 validator  = 2;
+    }
+
+    message Out {
+        google.protobuf.FieldMask field_mask = 1;
+    }
+
+    Scope scope = 1;
+    Auth  auth  = 2;
+    In    in    = 3;
+    Out   out   = 4;
+    // TODO constraint? - token scope - app only，web only
+    // TODO Vin, Vout
+    reserved 5 to 10;
+    // reference of other service method，pattern: pkg.Service/Method(FullMethod)
+    repeated string ref = 11;
+}
+
+// A simple descriptor of a field type.
+//
+// FieldDescriptor annotates a resource message field (either by means of a
+// protobuf annotation or use in the service config).
+//
+// Example:
+//
+//    message Topic {
+//      string id = 1 [(api.field).behavior=SEQ];
+//    }
+// ! do not use this.
+message FieldDescriptor {
+    enum Behavior {
+        BEHAVIOR_UNSPECIFIED = 0;
+        SEQ                  = 1;  // fill with seq(ctx) if empty
+        UUID                 = 2;  // fill with uuid(ctx) if empty
+        USERID               = 3;  // fill with user_id from incoming ctx (x-auth-token)
+        ORGID                = 4;  // fill with org_id from incoming ctx (x-auth-token)
+    }
+    Behavior behavior = 1;  // 字段行为描述
+    // string default    = 2;  // 字段默认值描述
+}

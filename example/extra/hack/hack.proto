@@ -1,0 +1,220 @@
+syntax = "proto3";
+
+// +build !release
+// ! this pkg should ONLY used for test purpose.
+package hack;
+
+import "extra/api/api.proto";
+import "google/api/annotations.proto";
+import "google/protobuf/any.proto";
+import public "google/protobuf/empty.proto";
+import "google/protobuf/wrappers.proto";
+
+option go_package = "code.izhaohu.com/dolphin/pb/extra/hack";
+
+/** 
+  * !experimental only
+  */
+service ExperimentalService {
+    rpc Ping(google.protobuf.Empty) returns (ExperimentalPayload) {
+        option (api.resource) = {
+            auth: SKIP
+        };
+    }
+
+    // call ping
+    rpc PingChain(google.protobuf.Empty) returns (google.protobuf.Empty) {
+        option (api.resource) = {
+            auth: SKIP
+        };
+    }
+
+    // errcode, default 1024
+    rpc PingError(ExperimentalPayload) returns (google.protobuf.Empty) {
+        option (api.resource) = {
+            auth: SKIP
+        };
+    }
+
+    // panic recover
+    rpc PingPanic(google.protobuf.Empty) returns (google.protobuf.Empty) {
+        option (api.resource) = {
+            auth: SKIP
+        };
+    }
+
+    rpc PingPrivate(google.protobuf.Empty) returns (google.protobuf.Empty) {
+        option (api.resource) = {
+            scope: PRIVATE
+        };
+        option (google.api.http) = {
+            get: "/hack/ping_private"
+            body: "*"
+        };
+    }
+
+    rpc PingMask(ExperimentalPayload) returns (ExperimentalPayload) {
+        option (api.resource) = {
+            auth: SKIP
+            in: { field_mask: { paths: [ "id", "nested.name" ] } }
+            out: { field_mask: { paths: [ "code" ] } }
+        };
+    }
+
+    rpc PingAny(ExperimentalPayload) returns (ExperimentalPayload) {
+        option (api.resource) = {
+            auth: SKIP
+        };
+    }
+
+    rpc PingMarkUnHealth(google.protobuf.Empty) returns (google.protobuf.Empty) {
+        option (api.resource) = {
+            auth: SKIP
+        };
+    }
+
+    // stream
+    rpc PingStreamOut(ExperimentalPayload) returns (stream ExperimentalPayload) {
+        option (api.resource) = {
+            auth: SKIP
+        };
+    }
+
+    rpc PingStream(stream ExperimentalPayload) returns (stream ExperimentalPayload) {
+        option (api.resource) = {
+            auth: SKIP
+        };
+    }
+
+    rpc PingStreamIn(stream ExperimentalPayload) returns (ExperimentalPayload) {
+        option (api.resource) = {
+            auth: SKIP
+        };
+    }
+
+    // not implemented, just demo
+    rpc PingDeprecated(google.protobuf.Empty) returns (google.protobuf.Empty) {
+        option deprecated     = true;
+        option (api.resource) = {
+            auth: SKIP
+        };
+    }
+
+    rpc PingSkipValidator(ExperimentalPayload) returns (ExperimentalPayload) {
+        option (api.resource) = {
+            auth: SKIP
+            in: { validator: { skip: true } }
+        };
+    }
+}
+
+message ExperimentalPayload {
+    message ItemA {
+        string id_for_a = 1;
+    }
+
+    message ItemB {
+        string id_for_b = 2;
+    }
+
+    string id   = 1;
+    int64  code = 2;
+
+    Nested nested = 3;
+
+    // optional value
+    google.protobuf.StringValue name    = 4;
+    google.protobuf.UInt32Value age     = 5;
+    google.protobuf.StringValue address = 6;
+
+    // any type
+    google.protobuf.Any payload = 7;
+
+    // oneof
+    oneof a_b {
+        ItemA a = 8;
+        ItemB b = 9;
+    }
+
+    reserved 10;
+
+    // list
+    repeated ExperimentalPayload list_message             = 11;
+    repeated google.protobuf.StringValue list_message_opt = 12;
+    repeated google.protobuf.Any list_message_any         = 13;
+    reserved 14 to 15;
+
+    // map
+    map<string, ExperimentalPayload>         map_message            = 16;
+    map<string, google.protobuf.StringValue> map_message_opt        = 17;
+    map<string, google.protobuf.Any>         map_message_any        = 18;
+    map<int64, ExperimentalPayload>          map_message_key_int64  = 19;
+    map<uint32, ExperimentalPayload>         map_message_key_uint32 = 20;
+
+    // deprecated field
+    string marked_as_deprecated_field = 30 [deprecated = true];
+
+    message Nested {
+        string          name = 1;
+        repeated string tags = 2;
+        string          SN   = 3 [json_name = "sn"];
+    }
+
+    message MsgDeprecated {
+        option deprecated = true;
+        string id         = 1;
+    }
+}
+
+// example of enum
+message RequestErrorEnum {
+    // Enum describing possible request errors.
+    enum RequestError {
+        // Enum unspecified.
+        UNSPECIFIED = 0;
+
+        // The received error code is not known in this version.
+        UNKNOWN = 1;
+
+        // Resource name is required for this request.
+        RESOURCE_NAME_MISSING = 3;
+    }
+}
+
+enum AttackVector {
+    ATTACK_VECTOR_UNSPECIFIED = 0;
+    ATTACK_VECTOR_NETWORK     = 1;
+    ATTACK_VECTOR_ADJACENT    = 2;
+    ATTACK_VECTOR_LOCAL       = 3;
+    ATTACK_VECTOR_PHYSICAL    = 4;
+}
+
+enum AttackComplexity {
+    ATTACK_COMPLEXITY_UNSPECIFIED = 0;
+    ATTACK_COMPLEXITY_LOW         = 1;
+    ATTACK_COMPLEXITY_HIGH        = 2;
+}
+
+// Container for enum describing the field a simulation modifies.
+message SimulationTypeEnum {
+    // Enum describing the field a simulation modifies.
+    enum SimulationType {
+        // Not specified.
+        UNSPECIFIED = 0;
+
+        // Used for return value only. Represents value unknown in this version.
+        UNKNOWN = 1;
+
+        // The simulation is for a cpc bid.
+        CPC_BID = 2;
+
+        // The simulation is for a cpv bid.
+        CPV_BID = 3;
+
+        // The simulation is for a cpa target.
+        TARGET_CPA = 4;
+
+        // The simulation is for a bid modifier.
+        BID_MODIFIER = 5;
+    }
+}
